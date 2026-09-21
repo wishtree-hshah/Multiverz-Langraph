@@ -93,6 +93,7 @@ def adapt(workflow: Workflow, raw: Any) -> dict[str, Any]:
         return {
             **common,
             "agents": raw.get("agents", []),
+            "documentComments": raw.get("documentComments", []),
             "consolidationType": raw.get("consolidationType"),
         }
 

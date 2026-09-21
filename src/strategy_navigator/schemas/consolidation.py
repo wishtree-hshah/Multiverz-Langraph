@@ -30,12 +30,52 @@ class ConsolidationAgentGroup(CamelModel):
     ideas: list[ConsolidationIdeaInput] = []
 
 
+class ConsolidationDocumentComment(CamelModel):
+    document_key: str
+    comments: list[str] = []
+
+
 class ConsolidationRequest(CamelModel):
     session_id: str
     project: ProjectContext
     agents: list[ConsolidationAgentGroup]
+    document_comments: list[ConsolidationDocumentComment] = []
     consolidation_type: Literal["agent", "human"] | None = None
     callback_url: str | None = None
+
+
+class RevisedIdea(CamelModel):
+    """One item of Call A's (revise) or Call C's (new) output array."""
+
+    title: str
+    summary: str
+    sources: list[str] = []
+    categories: list[str] = []
+    provenance: Literal["revised-existing", "new"] | None = None
+    tier: Tier | None = None
+
+
+class RevisedIdeasOutput(CamelModel):
+    ideas: list[RevisedIdea]
+
+
+class DocumentHighlight(CamelModel):
+    document: str
+    summary: str
+    key_insights: list[str] = []
+
+
+class DocumentIdeaCandidate(CamelModel):
+    title: str
+    summary: str
+    sources: list[str] = []
+
+
+class DocumentCommentaryOutput(CamelModel):
+    """Call B's output: consolidated per-document commentary + surfaced candidates."""
+
+    document_highlights: list[DocumentHighlight] = []
+    idea_candidates: list[DocumentIdeaCandidate] = []
 
 
 class ConsolidatedIdea(CamelModel):
@@ -43,13 +83,9 @@ class ConsolidatedIdea(CamelModel):
     summary: str
     sources: list[str] = []
     categories: list[str] = []
-    agent_id: int
-    is_domain_specific_agent: bool = False
+    agent_id: int | None = None
+    is_domain_specific_agent: bool | None = None
     tier: Tier | None = None
-
-
-class ConsolidationOutput(CamelModel):
-    ideas: list[ConsolidatedIdea]
 
 
 class ConsolidationCallback(CamelModel):

@@ -1,7 +1,7 @@
 # Migrating a workflow off n8n
 
 Ported so far: `domain_agent`, `idea_extraction`, `voting`, `custom_archetype`,
-`foresight_consolidation`. Everything else is a
+`foresight_consolidation`, `rapid_consolidation`. Everything else is a
 `StubStage` that raises `StageNotImplementedError` (→ dead-letter, alert) so a
 misrouted trigger is loud, not silent.
 
@@ -124,8 +124,7 @@ you want; `run_id` idempotency makes double-triggers safe.
 ## Porting order (recommended)
 
 1. ~~**`custom_archetype`** — tiny (10 nodes).~~ ✅ ported.
-2. ~~**`foresight_consolidation`**~~ ✅ ported. **`rapid_consolidation`** — small,
-   similar shape, Mongo prompts already pulled — next up.
+2. ~~**`foresight_consolidation`**~~ ✅ ported. ~~**`rapid_consolidation`**~~ ✅ ported.
 3. **`report_render`** — worst offender (114 nodes, 100 KB of Code-node JS),
    self-contained, clear substrate-in / report-out contract. Proves the pattern.
 4. **`capstone_substrate`** — feeds report_render; port right after.
