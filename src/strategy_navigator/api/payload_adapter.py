@@ -57,6 +57,26 @@ def adapt(workflow: Workflow, raw: Any) -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise InvalidPayloadError("payload must be an object")
 
+    if workflow == Workflow.CAPSTONE_SUBSTRATE:
+        # No top-level project block in this payload (see CapstoneSubstrateTriggerPayload) —
+        # project context lives nested inside tenStepInput/ideasInput instead.
+        ten_step_input = raw.get("tenStepInput") or {}
+        session_id = raw.get("sessionId")
+        project_id = raw.get("projectId") or ten_step_input.get("projectId")
+        trigger_batch_id = raw.get("triggerBatchId")
+        if not session_id or not project_id or not trigger_batch_id:
+            raise InvalidPayloadError(
+                "capstone_substrate payload is missing sessionId/projectId/triggerBatchId"
+            )
+        return {
+            "sessionId": str(session_id),
+            "projectId": project_id,
+            "triggerBatchId": trigger_batch_id,
+            "tenStepInput": ten_step_input,
+            "ideasInput": raw.get("ideasInput") or {},
+            "callbackUrl": raw.get("callbackUrl"),
+        }
+
     project = _project_block(raw)
     session_id = _session_id(raw)
     common = {
@@ -108,15 +128,6 @@ def adapt(workflow: Workflow, raw: Any) -> dict[str, Any]:
             "agents": raw.get("agents", []),
             "ideas": raw.get("ideas", []),
             "childBatchSize": raw.get("childBatchSize", 10),
-        }
-
-    if workflow == Workflow.CAPSTONE_SUBSTRATE:
-        return {
-            **common,
-            "triggerBatchId": raw.get("triggerBatchId", session_id),
-            "votingSessionId": raw.get("votingSessionId"),
-            "votedIdeas": raw.get("votedIdeas", raw.get("ideas", [])),
-            "context": raw.get("context", {}),
         }
 
     if workflow == Workflow.CUSTOM_ARCHETYPE:

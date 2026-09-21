@@ -1,7 +1,8 @@
 # Migrating a workflow off n8n
 
 Ported so far: `domain_agent`, `idea_extraction`, `voting`, `custom_archetype`,
-`foresight_consolidation`, `rapid_consolidation`, `report_render`. Everything else is a
+`foresight_consolidation`, `rapid_consolidation`, `report_render`,
+`capstone_substrate`. Everything else is a
 `StubStage` that raises `StageNotImplementedError` (→ dead-letter, alert) so a
 misrouted trigger is loud, not silent.
 
@@ -133,8 +134,13 @@ you want; `run_id` idempotency makes double-triggers safe.
    node-by-node trace, including the two documented scope cuts (short/batch
    section-generation path only, no automatic mechanical-audit retry loop —
    n8n computes but never wires one either).
-4. **`capstone_substrate`** — feeds report_render; do next now that
-   report_render is a proven target to render substrate against.
+4. ~~**`capstone_substrate`**~~ ✅ ported. Turned out to have as much (maybe
+   more) load-bearing logic in its ~18 deterministic Code nodes as in its 13
+   LLM calls — fact-citation repair via number-matching, entity-consolidation
+   reconstruction, investment rollup, and the whole substrate assembly and
+   referential-integrity check are pure Python ports with no LLM involved.
+   See `stages/capstone_substrate.py`'s module docstring for the trace and
+   two documented deliberate fixes over gaps in the actual n8n wiring.
 5. **`form_filling_10step`** — the 308-node monster, last, one step per node.
 6. `strategy_form_idea_generation`, `strategic_foresight_report` — no n8n export
    exists for either (checked all of `challenges-n8n/`); left as `StubStage`

@@ -48,7 +48,8 @@ def _run_id(workflow: Workflow, session_id: str) -> str:
 async def _dispatch(workflow: Workflow, raw: Any) -> TriggerAccepted:
     request = adapt(workflow, raw)
     session_id = request["sessionId"]
-    project_id = int(request["project"]["projectId"])
+    # capstone_substrate has no top-level "project" block (see payload_adapter.adapt).
+    project_id = int(request.get("projectId") or request["project"]["projectId"])
     run_id = _run_id(workflow, session_id)
 
     with bind_context(run_id=run_id, session_id=session_id, workflow=str(workflow)):

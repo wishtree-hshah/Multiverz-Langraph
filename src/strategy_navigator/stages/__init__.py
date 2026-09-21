@@ -19,6 +19,7 @@ from typing import Any
 from strategy_navigator.constants import Workflow
 from strategy_navigator.errors import UnknownWorkflowError
 from strategy_navigator.stages import (
+    capstone_substrate,
     custom_archetype,
     domain_agent,
     foresight_consolidation,
@@ -40,10 +41,10 @@ _REGISTRY: dict[Workflow, GraphBuilder] = {
     Workflow.FORESIGHT_CONSOLIDATION: foresight_consolidation.build,
     Workflow.RAPID_CONSOLIDATION: rapid_consolidation.build,
     Workflow.REPORT_RENDER: report_render.build,
+    Workflow.CAPSTONE_SUBSTRATE: capstone_substrate.build,
     # --- stubs (port next) ---
     Workflow.STRATEGY_FORM_IDEA_GENERATION: StubStage(Workflow.STRATEGY_FORM_IDEA_GENERATION),
     Workflow.FORM_FILLING_10STEP: StubStage(Workflow.FORM_FILLING_10STEP),
-    Workflow.CAPSTONE_SUBSTRATE: StubStage(Workflow.CAPSTONE_SUBSTRATE),
     Workflow.STRATEGIC_FORESIGHT_REPORT: StubStage(Workflow.STRATEGIC_FORESIGHT_REPORT),
 }
 

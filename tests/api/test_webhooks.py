@@ -50,10 +50,10 @@ def test_trigger_unknown_workflow_400(client):
     assert resp.status_code == 400
 
 
-def test_trigger_capstone_substrate_is_long_lane_stub(client, sample_project):
+def test_trigger_form_filling_10step_is_long_lane_stub(client, sample_project):
     body = {
-        "workflow_name": "Capstone-Substrate-Generation",
-        "payload": {**sample_project, "sessionId": "r-1", "votedIdeas": []},
+        "workflow_name": "Strategy-form-submission",
+        "payload": {**sample_project, "sessionId": "r-1"},
     }
     resp = client.post("/webhooks/trigger", json=body)
     assert resp.status_code == 202
@@ -65,6 +65,23 @@ def test_trigger_report_render_is_ported(client, sample_project):
     body = {
         "workflow_name": "Capstone-Report-Render",
         "payload": {**sample_project, "sessionId": "r-1", "substrate": {}},
+    }
+    resp = client.post("/webhooks/trigger", json=body)
+    assert resp.status_code == 202
+    data = resp.json()
+    assert data["lane"] == "long"
+    assert data["ported"] is True
+
+
+def test_trigger_capstone_substrate_is_ported(client):
+    body = {
+        "workflow_name": "Capstone-Substrate-Generation",
+        "payload": {
+            "sessionId": "r-1",
+            "projectId": 42,
+            "triggerBatchId": "batch-1",
+            "tenStepInput": {"solutions": []},
+        },
     }
     resp = client.post("/webhooks/trigger", json=body)
     assert resp.status_code == 202

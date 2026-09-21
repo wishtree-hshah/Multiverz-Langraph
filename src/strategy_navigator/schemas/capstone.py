@@ -14,24 +14,34 @@ from strategy_navigator.schemas.common import CamelModel, ProjectContext
 
 
 class SubstrateRequest(CamelModel):
+    """Matches backend's real ``CapstoneSubstrateTriggerPayload`` exactly: no
+    top-level ``project`` block (unlike every other workflow) — the project
+    context lives nested inside ``tenStepInput.project`` /
+    ``ideasInput.project``. ``tenStepInput``/``ideasInput`` are each a large,
+    semi-structured per-contributor bundle (10-step form data, voted ideas);
+    kept as permissive dicts and read field-by-field in stages/capstone_substrate.py,
+    which documents the exact field paths traced from the n8n Code nodes.
+    """
+
     session_id: str
-    trigger_batch_id: str | None = None
-    project: ProjectContext
-    voting_session_id: int | None = None
+    project_id: int
+    trigger_batch_id: str
+    ten_step_input: dict[str, Any]
+    ideas_input: dict[str, Any] = {}
     callback_url: str | None = None
-    voted_ideas: list[dict[str, Any]] = []
-    context: dict[str, Any] = {}
 
 
 class SubstrateCallback(CamelModel):
     session_id: str
     project_id: int
-    trigger_batch_id: str | None = None
+    trigger_batch_id: str
     status: str = "completed"
     execution_id: str | None = None
     substrate: dict[str, Any] = {}
     token_usage: list[dict] | None = None
     error_message: str | None = None
+    error_code: str | None = None
+    jina_tokens: int | None = None
 
 
 class ArchetypeSpec(CamelModel):

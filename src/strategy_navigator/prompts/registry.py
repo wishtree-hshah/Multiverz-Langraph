@@ -550,6 +550,141 @@ PROMPTS: dict[str, PromptSpec] = {
         output_schema="schemas.report_render.QC7Output",
         local_block="qc7_scorecard",
     ),
+    # === capstone_substrate — n8n "Strategy Navigator Capstone Pipeline (4).json" (78 nodes) ===
+    # Traced node-by-node from the export's Code/connections; see
+    # stages/capstone_substrate.py's module docstring.
+    "capstone_substrate.citation_resolution": _s(
+        ref="capstone_substrate.citation_resolution",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 2) Citation Resolution",
+        output_schema="schemas.capstone_substrate.CitationResolutionOutput",
+        local_block="citation_resolution",
+        notes="Runs after a deterministic URL-dedup pre-pass (node "
+        "'Code in JavaScript2') that builds sources/proseResidual; only "
+        "resolves the leftover prose citations.",
+    ),
+    "capstone_substrate.facts_register": _s(
+        ref="capstone_substrate.facts_register",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 3) Facts Register",
+        output_schema="schemas.capstone_substrate.FactsRegisterOutput",
+        local_block="facts_register",
+        notes="Receives only agentContent (no sources table, despite what the "
+        "prompt's own prose describes) — verified against the actual "
+        "'Facts Register Input' Code node. Every fact starts uncited; "
+        "citations are repaired later by number-matching against signals/"
+        "uncertainties/best-practices text (node 'Node 11' equivalent).",
+    ),
+    "capstone_substrate.entity_consolidation_signals": _s(
+        ref="capstone_substrate.entity_consolidation_signals",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 4a) Entity Consolidation",
+        output_schema="schemas.capstone_substrate.SigDecisionsOutput",
+        local_block="entity_consolidation_signals",
+        notes="Output wrapper key 'sigDecisions' confirmed from the "
+        "reconstruction Code node ('Code in JavaScript'), not from the "
+        "prompt text (which never shows the wrapper key).",
+    ),
+    "capstone_substrate.entity_consolidation_uncertainties": _s(
+        ref="capstone_substrate.entity_consolidation_uncertainties",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 4a) Entity Consolidation2",
+        output_schema="schemas.capstone_substrate.UncDecisionsOutput",
+        local_block="entity_consolidation_uncertainties",
+    ),
+    "capstone_substrate.entity_consolidation_best_practices": _s(
+        ref="capstone_substrate.entity_consolidation_best_practices",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 4a) Entity Consolidation3",
+        output_schema="schemas.capstone_substrate.BpDecisionsOutput",
+        local_block="entity_consolidation_best_practices",
+    ),
+    "capstone_substrate.relational_binding": _s(
+        ref="capstone_substrate.relational_binding",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 4b) Relational Binding",
+        output_schema="schemas.capstone_substrate.RelationalBindingOutput",
+        local_block="relational_binding",
+    ),
+    "capstone_substrate.trend_clustering": _s(
+        ref="capstone_substrate.trend_clustering",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 5) Trend Clustering",
+        output_schema="schemas.capstone_substrate.TrendClusteringOutput",
+        local_block="trend_clustering",
+    ),
+    "capstone_substrate.foresight_action_map": _s(
+        ref="capstone_substrate.foresight_action_map",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 6) Foresight-to-Action Map",
+        output_schema="schemas.capstone_substrate.ForesightActionMapOutput",
+        local_block="foresight_action_map",
+    ),
+    "capstone_substrate.recommendation_consolidation": _s(
+        ref="capstone_substrate.recommendation_consolidation",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 7) Recommendation Consolidation",
+        output_schema="schemas.capstone_substrate.RecommendationConsolidationOutput",
+        local_block="recommendation_consolidation",
+    ),
+    "capstone_substrate.stakeholder_lensing": _s(
+        ref="capstone_substrate.stakeholder_lensing",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 9) Stakeholder Lensing",
+        output_schema="schemas.capstone_substrate.StakeholderLensingOutput",
+        local_block="stakeholder_lensing",
+    ),
+    "capstone_substrate.preferred_future": _s(
+        ref="capstone_substrate.preferred_future",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 7b) Preferred Future and Provocations Consolidation",
+        output_schema="schemas.capstone_substrate.PreferredFutureOutput",
+        local_block="preferred_future",
+    ),
+    "capstone_substrate.investment_sizing": _s(
+        ref="capstone_substrate.investment_sizing",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 7c) Investment Sizing",
+        output_schema="schemas.capstone_substrate.InvestmentSizingOutput",
+        local_block="investment_sizing",
+        notes="n8n node has a web search tool attached; ported as jina_search "
+        "results composed into the prompt, same pattern as report_render's "
+        "external_search. Totals/ids assigned deterministically downstream "
+        "('Investment Sizing Rollup').",
+    ),
+    "capstone_substrate.substrate_review": _s(
+        ref="capstone_substrate.substrate_review",
+        source=PromptSource.INLINE,
+        workflow=Workflow.CAPSTONE_SUBSTRATE,
+        n8n_workflow_file="Strategy Navigator Capstone Pipeline (4).json",
+        n8n_node="(Node 11b) Substrate Review",
+        output_schema="schemas.capstone_substrate.SubstrateReviewOutput",
+        local_block="substrate_review",
+    ),
 }
 
 
