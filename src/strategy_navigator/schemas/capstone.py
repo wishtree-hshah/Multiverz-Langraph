@@ -103,11 +103,17 @@ class RenderRequest(CamelModel):
 
 
 class RenderCallback(CamelModel):
-    session_id: str
+    """Matches backend's ``RenderCallbackDto`` (render-callback.dto.ts) exactly:
+    no ``sessionId`` field, ``reports`` is an array (one entry per triggered
+    archetype — this stage always emits exactly one), ``status`` is one of
+    completed/partial/failed.
+    """
+
+    render_batch_id: str
     project_id: int
-    render_batch_id: str | None = None
     status: str = "completed"
-    report: dict[str, Any] = {}
+    reports: list[dict[str, Any]] = []
     execution_id: str | None = None
     token_usage: list[dict] | None = None
     error_message: str | None = None
+    jina_tokens: int | None = None

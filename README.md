@@ -97,7 +97,7 @@ make worker-retry
 
 `strategy-navigator workflows` prints the table. Ported: `domain_agent`,
 `idea_extraction`, `voting`, `custom_archetype`, `foresight_consolidation`,
-`rapid_consolidation`. The rest raise `StageNotImplementedError` (→
+`rapid_consolidation`, `report_render`. The rest raise `StageNotImplementedError` (→
 dead-letter, alert) until ported — see [docs/MIGRATION-FROM-N8N.md](docs/MIGRATION-FROM-N8N.md).
 
 ## Testing

@@ -82,6 +82,7 @@ def fake_structured(monkeypatch: pytest.MonkeyPatch) -> Any:
         "strategy_navigator.stages.foresight_consolidation.generate_structured", _gen
     )
     monkeypatch.setattr("strategy_navigator.stages.rapid_consolidation.generate_structured", _gen)
+    monkeypatch.setattr("strategy_navigator.stages.report_render.generate_structured", _gen)
 
     class Handle:
         def set(self, stage: str, payload: dict) -> None:
@@ -98,6 +99,7 @@ def fake_search(monkeypatch: pytest.MonkeyPatch) -> None:
         return [SearchHit(title=f"hit for {query}", url="https://example.com/x", snippet="...")]
 
     monkeypatch.setattr("strategy_navigator.stages.idea_extraction.jina_search", _search)
+    monkeypatch.setattr("strategy_navigator.stages.report_render.jina_search", _search)
 
 
 @pytest.fixture
