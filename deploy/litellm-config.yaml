@@ -1,0 +1,46 @@
+# LiteLLM gateway for Strategy Navigator.
+# Single instance -> its in-memory router state IS the shared rate limiter /
+# cooldown across every worker lane. Add a redis_host block only if you run
+# more than one LiteLLM replica.
+#
+# Carried over from challenges-n8n/litellm-config.yaml. Anthropic models are
+# left commented; enable by uncommenting + adding the fallback edge.
+
+model_list:
+  - model_name: deepseek-v4-pro
+    litellm_params:
+      model: openrouter/deepseek/deepseek-v4-pro
+      api_key: os.environ/OPENROUTER_KEY
+      rpm: 60
+      tpm: 200000
+  - model_name: deepseek-v4-flash-0731
+    litellm_params:
+      model: openrouter/deepseek/deepseek-v4-flash-0731
+      api_key: os.environ/OPENROUTER_KEY
+      rpm: 120
+      tpm: 400000
+
+  # - model_name: sonnet-5
+  #   litellm_params:
+  #     model: openrouter/anthropic/claude-sonnet-5
+  #     api_key: os.environ/OPENROUTER_KEY
+  #     rpm: 50
+  #     tpm: 200000
+
+router_settings:
+  routing_strategy: simple-shuffle
+  enable_pre_call_checks: true
+  num_retries: 3
+  allowed_fails: 2
+  cooldown_time: 30
+  timeout: 1800
+  fallbacks:
+    - deepseek-v4-pro: ["deepseek-v4-flash-0731"]
+    - deepseek-v4-flash-0731: ["deepseek-v4-pro"]
+
+litellm_settings:
+  drop_params: true
+  request_timeout: 1800
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

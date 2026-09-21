@@ -1,0 +1,148 @@
+"""Translate the challenges-backend's flat webhook payloads into the nested
+request dicts our stage schemas expect.
+
+The backend sends project fields at the top level (``projectName``,
+``clientContext``, ...). Our schemas nest them under ``project`` (a
+:class:`ProjectContext`). This module is the single seam where that mapping
+lives, so the backend never has to change.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from strategy_navigator.constants import Workflow
+from strategy_navigator.errors import InvalidPayloadError
+
+_PROJECT_FIELDS = (
+    "projectId",
+    "projectName",
+    "projectDescription",
+    "clientOrganization",
+    "clientContext",
+    "reportProfileForClient",
+    "timeLines",
+    "projectIntent",
+    "stakeholders",
+    "documents",
+)
+
+
+def _project_block(p: dict[str, Any]) -> dict[str, Any]:
+    if "project" in p and isinstance(p["project"], dict):
+        return p["project"]
+    block = {k: p[k] for k in _PROJECT_FIELDS if k in p}
+    if "projectId" not in block:
+        raise InvalidPayloadError("payload is missing projectId / project block")
+    block.setdefault("stakeholders", [])
+    block.setdefault("documents", [])
+    return block
+
+
+def _session_id(p: dict[str, Any]) -> str:
+    sid = (
+        p.get("sessionId") or p.get("batchId") or p.get("triggerBatchId") or p.get("renderBatchId")
+    )
+    if not sid:
+        raise InvalidPayloadError("payload is missing sessionId / batchId")
+    return str(sid)
+
+
+def adapt(workflow: Workflow, raw: Any) -> dict[str, Any]:
+    """``raw`` may be a bare object or n8n's single-element array wrapper."""
+    if isinstance(raw, list):
+        if not raw:
+            raise InvalidPayloadError("empty payload array")
+        raw = raw[0]
+    if not isinstance(raw, dict):
+        raise InvalidPayloadError("payload must be an object")
+
+    project = _project_block(raw)
+    session_id = _session_id(raw)
+    common = {
+        "sessionId": session_id,
+        "project": project,
+        "callbackUrl": raw.get("callbackUrl"),
+        "documents": raw.get("documents", []),
+    }
+
+    if workflow == Workflow.DOMAIN_AGENT:
+        return {
+            **common,
+            "documents": raw.get("documents", []),
+            "minAgents": raw.get("minAgents", 3),
+            "maxAgents": raw.get("maxAgents", 6),
+        }
+
+    if workflow == Workflow.IDEA_EXTRACTION:
+        agent = raw.get("agent") or {}
+        if not agent and raw.get("agentId"):
+            agent = {"id": raw["agentId"], "name": raw.get("agentName", "Agent")}
+        if not agent:
+            raise InvalidPayloadError("idea_extraction payload has no agent")
+        agent.setdefault("isDomainSpecific", raw.get("isDomainSpecific", False))
+        return {
+            **common,
+            "agent": agent,
+            "categories": raw.get("categories", []),
+            "ideaCount": raw.get("ideaCount", 5),
+            "researchQueries": raw.get("researchQueries", []),
+        }
+
+    if workflow == Workflow.RAPID_CONSOLIDATION:
+        return {
+            **common,
+            "agents": raw.get("agents", []),
+            "consolidationType": raw.get("consolidationType"),
+        }
+
+    if workflow == Workflow.FORESIGHT_CONSOLIDATION:
+        return {**common, "solutions": raw.get("solutions", [])}
+
+    if workflow == Workflow.VOTING:
+        return {
+            **common,
+            "batchId": raw.get("batchId", session_id),
+            "votingSessionId": raw.get("votingSessionId"),
+            "agents": raw.get("agents", []),
+            "ideas": raw.get("ideas", []),
+            "childBatchSize": raw.get("childBatchSize", 10),
+        }
+
+    if workflow == Workflow.CAPSTONE_SUBSTRATE:
+        return {
+            **common,
+            "triggerBatchId": raw.get("triggerBatchId", session_id),
+            "votingSessionId": raw.get("votingSessionId"),
+            "votedIdeas": raw.get("votedIdeas", raw.get("ideas", [])),
+            "context": raw.get("context", {}),
+        }
+
+    if workflow == Workflow.CUSTOM_ARCHETYPE:
+        return {
+            **common,
+            "votingSessionId": raw.get("votingSessionId"),
+            "spec": {
+                "name": raw.get("name", "Custom report"),
+                "purpose": raw.get("purpose", ""),
+                "primaryReader": raw.get("primaryReader", ""),
+                "pages": raw.get("pages", 10),
+                "intendedUse": raw.get("intendedUse", ""),
+                "sectionList": raw.get("sectionList", []),
+                "template": raw.get("template"),
+                "externalOptionsProminence": raw.get("externalOptionsProminence"),
+                "divergenceDisplay": raw.get("divergenceDisplay"),
+            },
+        }
+
+    if workflow == Workflow.REPORT_RENDER:
+        return {
+            **common,
+            "renderBatchId": raw.get("renderBatchId", session_id),
+            "votingSessionId": raw.get("votingSessionId"),
+            "substrate": raw.get("substrate", {}),
+            "selectedArchetypes": raw.get("selectedArchetypes", []),
+        }
+
+    # form_filling_10step, strategic_foresight_report — pass through until ported
+    return {**common, "raw": raw}

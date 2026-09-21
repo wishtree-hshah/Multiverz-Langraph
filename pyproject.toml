@@ -1,0 +1,110 @@
+[project]
+name = "strategy-navigator"
+version = "0.1.0"
+description = "Strategy Navigator — production LangGraph orchestration replacing the n8n workflow lanes"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+
+dependencies = [
+  # --- orchestration ---
+  "langgraph>=0.2.60",
+  "langgraph-checkpoint-postgres>=2.0.7",
+  "langchain-core>=0.3.30",
+  # --- LLM ---
+  "litellm>=1.55.0",
+  # --- API ---
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.32.0",
+  "python-multipart>=0.0.12",
+  # --- data / config ---
+  "pydantic>=2.9.0",
+  "pydantic-settings>=2.6.0",
+  "orjson>=3.10.0",
+  # --- job queue (Postgres-backed — no Redis) ---
+  "procrastinate>=3.0.0",
+  "psycopg[binary,pool]>=3.2.0",
+  # --- app-owned tables / migrations ---
+  "sqlalchemy[asyncio]>=2.0.36",
+  "alembic>=1.14.0",
+  # --- infra ---
+  "structlog>=24.4.0",
+  "httpx>=0.28.0",
+  "tenacity>=9.0.0",
+  "jinja2>=3.1.4",
+  "typer>=0.15.0",
+  "rich>=13.9.0",
+  # --- observability ---
+  "opentelemetry-sdk>=1.29.0",
+  "opentelemetry-exporter-otlp-proto-http>=1.29.0",
+  "opentelemetry-instrumentation-fastapi>=0.50b0",
+  "opentelemetry-instrumentation-httpx>=0.50b0",
+]
+
+[project.optional-dependencies]
+# only needed to export prompt templates from the n8n MongoDB
+n8n = ["pymongo>=4.9.0"]
+dev = [
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+  "pytest-cov>=6.0.0",
+  "respx>=0.21.1",
+  "ruff>=0.8.0",
+  "mypy>=1.13.0",
+  "anyio>=4.6.0",
+]
+
+[project.scripts]
+strategy-navigator = "strategy_navigator.main:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/strategy_navigator"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "PT", "SIM", "RUF"]
+ignore = [
+  "A003",
+  "B008",    # FastAPI/typer Depends()/Body()/Option() in defaults is idiomatic
+  "RUF012",  # pydantic models legitimately use list/dict field defaults
+  "RUF001", "RUF002", "RUF003",  # we use →, ×, — in docstrings deliberately
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501", "B017", "PT011", "S101"]
+"migrations/*" = ["E501", "N999"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["strategy_navigator"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+exclude = ["migrations/", "tests/", "evals/"]
+
+[[tool.mypy.overrides]]
+# these ship partial or no type info
+module = ["litellm.*", "langgraph.*", "langchain_core.*", "procrastinate.*", "pymongo.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --cov=strategy_navigator --cov-report=term-missing"
+filterwarnings = ["error"]
+markers = [
+  "integration: requires a live Postgres / LiteLLM",
+  "eval: slow LLM quality evaluation",
+]
