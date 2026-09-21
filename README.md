@@ -85,7 +85,7 @@ make worker-retry
 | `src/strategy_navigator/prompts/` | one `.md` per stage (Jinja2), git-versioned |
 | `src/strategy_navigator/schemas/` | Pydantic I/O models — one per stage, camelCase-compatible with the backend |
 | `src/strategy_navigator/graph/` | shared `PipelineState`, Postgres checkpointer, run/resume runner |
-| `src/strategy_navigator/stages/` | one module per workflow (`domain_agent`, `idea_extraction`, `voting/` ported; rest are stubs) |
+| `src/strategy_navigator/stages/` | one module per workflow — all 11 ported |
 | `src/strategy_navigator/queue/` | procrastinate app, lane↔queue mapping, the `run_workflow` task + retry routing |
 | `src/strategy_navigator/callbacks/` | POST results back to challenges-backend |
 | `src/strategy_navigator/api/` | FastAPI: `/webhooks/*`, `/runs/*`, `/admin/*`, health |
@@ -95,11 +95,15 @@ make worker-retry
 
 ## Porting status
 
-`strategy-navigator workflows` prints the table. Ported: `domain_agent`,
-`idea_extraction`, `voting`, `custom_archetype`, `foresight_consolidation`,
-`rapid_consolidation`, `report_render`, `capstone_substrate`,
-`form_filling_10step`. The rest raise `StageNotImplementedError` (→
-dead-letter, alert) until ported — see [docs/MIGRATION-FROM-N8N.md](docs/MIGRATION-FROM-N8N.md).
+`strategy-navigator workflows` prints the table. All 11 workflows are ported:
+`domain_agent`, `idea_extraction`, `voting`, `custom_archetype`,
+`foresight_consolidation`, `rapid_consolidation`, `report_render`,
+`capstone_substrate`, `form_filling_10step`, `strategy_form_idea_generation`,
+`strategic_foresight_report`. The last two have no n8n workflow export under
+their names anywhere in `challenges-n8n/` or `strategy-navigator-n8n/` — they
+were ported from the recovered Mongo `prompt_list` prompt text (byte-exact,
+found in `strategy-navigator-n8n`'s `Prompt seed.json`) plus the real backend
+DTOs/controllers. See [docs/MIGRATION-FROM-N8N.md](docs/MIGRATION-FROM-N8N.md).
 
 ## Testing
 

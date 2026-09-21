@@ -27,6 +27,8 @@ from strategy_navigator.stages import (
     idea_extraction,
     rapid_consolidation,
     report_render,
+    strategic_foresight_report,
+    strategy_form_idea_generation,
     voting,
 )
 from strategy_navigator.stages.base import StubStage
@@ -44,9 +46,8 @@ _REGISTRY: dict[Workflow, GraphBuilder] = {
     Workflow.REPORT_RENDER: report_render.build,
     Workflow.CAPSTONE_SUBSTRATE: capstone_substrate.build,
     Workflow.FORM_FILLING_10STEP: form_filling_10step.build,
-    # --- stubs (port next) ---
-    Workflow.STRATEGY_FORM_IDEA_GENERATION: StubStage(Workflow.STRATEGY_FORM_IDEA_GENERATION),
-    Workflow.STRATEGIC_FORESIGHT_REPORT: StubStage(Workflow.STRATEGIC_FORESIGHT_REPORT),
+    Workflow.STRATEGY_FORM_IDEA_GENERATION: strategy_form_idea_generation.build,
+    Workflow.STRATEGIC_FORESIGHT_REPORT: strategic_foresight_report.build,
 }
 
 

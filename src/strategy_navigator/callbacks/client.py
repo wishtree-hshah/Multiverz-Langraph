@@ -39,7 +39,14 @@ _DEFAULT_PATH: dict[str, str] = {
     # delivery) posts to the same per-step checkpoint route the backend exposes
     # directly on customize-template (see stages/form_filling_10step.py).
     Workflow.FORM_FILLING_10STEP: "/customize-template/n8n-step-checkpoint",
-    Workflow.STRATEGIC_FORESIGHT_REPORT: "/n8n/callbacks/strategic-foresight-report",
+    # customize-template.controller.ts: @Post('projects/strategic-foresight-report-callback')
+    Workflow.STRATEGIC_FORESIGHT_REPORT: (
+        "/customize-template/projects/strategic-foresight-report-callback"
+    ),
+    # customize-template.controller.ts: @Post('n8n-callback') — same shared endpoint
+    # idea_extraction (Agent-ideas) posts to, but the body itself is the array
+    # (wrapped under "results"), not a single-element-array-wrapped object.
+    Workflow.STRATEGY_FORM_IDEA_GENERATION: "/customize-template/n8n-callback",
 }
 
 # workflows whose backend controller expects a bare object, not [obj]
@@ -48,6 +55,8 @@ _BARE_OBJECT = {
     Workflow.REPORT_RENDER,
     Workflow.CUSTOM_ARCHETYPE,
     Workflow.FORM_FILLING_10STEP,
+    Workflow.STRATEGIC_FORESIGHT_REPORT,
+    Workflow.STRATEGY_FORM_IDEA_GENERATION,
 }
 
 

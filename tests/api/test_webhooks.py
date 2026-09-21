@@ -50,15 +50,47 @@ def test_trigger_unknown_workflow_400(client):
     assert resp.status_code == 400
 
 
-def test_trigger_strategic_foresight_report_is_long_lane_stub(client, sample_project):
+def test_trigger_strategic_foresight_report_is_ported(client, sample_project):
     body = {
         "workflow_name": "Report-Generation-Strategic-Foresight",
-        "payload": {**sample_project, "sessionId": "r-1"},
+        "payload": {
+            "sessionId": "r-1",
+            "projectId": sample_project["projectId"],
+            "triggerBatchId": "batch-1",
+            "project": {"id": sample_project["projectId"], "projectName": "Grid Modernisation"},
+            "ideationProcess": {},
+            "projectIdeas": [],
+            "solutions": [],
+            "metrics": {},
+        },
     }
     resp = client.post("/webhooks/trigger", json=body)
     assert resp.status_code == 202
-    assert resp.json()["lane"] == "long"
-    assert resp.json()["ported"] is False
+    data = resp.json()
+    assert data["lane"] == "long"
+    assert data["ported"] is True
+
+
+def test_trigger_strategy_form_idea_generation_is_ported(client):
+    body = {
+        "workflow_name": "Strategy-form-idea-generation",
+        "payload": [
+            {
+                "runId": "run-abc",
+                "solution": {
+                    "projectId": 42,
+                    "projectName": "Grid Modernisation",
+                    "templateId": 101,
+                    "templateSolution": {"executiveSummary": "Deploy smart meters."},
+                },
+                "usermetadata": {"id": 7, "firstName": "Jamie"},
+            }
+        ],
+    }
+    resp = client.post("/webhooks/trigger", json=body)
+    assert resp.status_code == 202
+    data = resp.json()
+    assert data["ported"] is True
 
 
 def test_trigger_form_filling_10step_is_ported(client, sample_project):

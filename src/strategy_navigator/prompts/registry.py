@@ -334,7 +334,9 @@ PROMPTS: dict[str, PromptSpec] = {
         output_schema="schemas.ideas.IdeaExtractionOutput",
         local_block=None,
         notes="promptName 'Idea Extract with Solution'. Scores/curates ideas from "
-        "the 10-step solution payload; not yet ported.",
+        "the 10-step solution payload. Ported (stages/strategy_form_idea_generation.py); "
+        "byte-exact text recovered from strategy-navigator-n8n's Prompt seed.json "
+        "pinned payload (no n8n workflow export exists under this name).",
     ),
     # === strategic_foresight_report — n8n "Report-Generation-Strategic-Foresight" =
     "strategic_foresight_report.system": _s(
@@ -358,7 +360,10 @@ PROMPTS: dict[str, PromptSpec] = {
         ),
         local_block=None,
         notes="promptName 'Report Generation'. Large publication-ready report "
-        "prompt (n8n output parser schema); not yet ported.",
+        "prompt (n8n output parser schema). Ported (stages/strategic_foresight_report.py); "
+        "byte-exact text (including the full 5.1 output-parser JSON schema) recovered "
+        "from strategy-navigator-n8n's Prompt seed.json pinned payload (no n8n workflow "
+        "export exists under this name).",
     ),
     # === voting contextual-panel generator — n8n "Contextual-voting-agent" =======
     "voting.panel_generator": _s(

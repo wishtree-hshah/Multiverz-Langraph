@@ -48,14 +48,82 @@ def _session_id(p: dict[str, Any]) -> str:
     return str(sid)
 
 
+def _adapt_strategy_form_idea_generation(raw: Any) -> dict[str, Any]:
+    """``raw`` here is a bare ARRAY, one item per customized template, all
+    sharing one ``runId`` — see CustomizeTemplateService.processIdea. Do not
+    run this through the generic single-element-array unwrap."""
+    items = raw if isinstance(raw, list) else [raw]
+    if not items:
+        raise InvalidPayloadError("strategy_form_idea_generation payload is empty")
+    run_id = items[0].get("runId")
+    if not run_id:
+        raise InvalidPayloadError("strategy_form_idea_generation payload is missing runId")
+    templates: list[dict[str, Any]] = []
+    for item in items:
+        sol = item.get("solution") or {}
+        if "projectId" not in sol:
+            raise InvalidPayloadError(
+                "strategy_form_idea_generation item is missing solution.projectId"
+            )
+        templates.append(sol)
+    return {
+        "sessionId": str(run_id),
+        "projectId": templates[0]["projectId"],
+        "templates": templates,
+        "usermetadata": items[0].get("usermetadata") or {},
+        "callbackUrl": items[0].get("callbackUrl"),
+    }
+
+
+def _adapt_strategic_foresight_report(raw: dict[str, Any]) -> dict[str, Any]:
+    """Matches backend's ``ProjectStrategicForesightReportWebhookPayload`` —
+    note the nested project block uses ``id``, not ``projectId``, unlike every
+    other workflow's project block."""
+    p = raw.get("project") or {}
+    session_id = raw.get("sessionId")
+    project_id = raw.get("projectId") or p.get("id")
+    if not session_id or not project_id:
+        raise InvalidPayloadError(
+            "strategic_foresight_report payload is missing sessionId/projectId"
+        )
+    project = {
+        "projectId": project_id,
+        "projectName": p.get("projectName", ""),
+        "projectDescription": p.get("projectDescription", ""),
+        "clientOrganization": p.get("clientOrganization", ""),
+        "clientContext": p.get("clientContext", ""),
+        "reportProfileForClient": p.get("reportProfileForClient", ""),
+        "timeLines": p.get("timeLines"),
+        "projectIntent": p.get("projectIntent"),
+        "stakeholders": p.get("stakeholders", []),
+        "documents": p.get("documents", []),
+    }
+    return {
+        "sessionId": str(session_id),
+        "projectId": project_id,
+        "project": project,
+        "triggerBatchId": raw.get("triggerBatchId"),
+        "ideationProcess": raw.get("ideationProcess", {}),
+        "projectIdeas": raw.get("projectIdeas", []),
+        "solutions": raw.get("solutions", []),
+        "metrics": raw.get("metrics", {}),
+        "callbackUrl": raw.get("callbackUrl"),
+    }
+
+
 def adapt(workflow: Workflow, raw: Any) -> dict[str, Any]:
     """``raw`` may be a bare object or n8n's single-element array wrapper."""
+    if workflow == Workflow.STRATEGY_FORM_IDEA_GENERATION:
+        return _adapt_strategy_form_idea_generation(raw)
     if isinstance(raw, list):
         if not raw:
             raise InvalidPayloadError("empty payload array")
         raw = raw[0]
     if not isinstance(raw, dict):
         raise InvalidPayloadError("payload must be an object")
+
+    if workflow == Workflow.STRATEGIC_FORESIGHT_REPORT:
+        return _adapt_strategic_foresight_report(raw)
 
     if workflow == Workflow.CAPSTONE_SUBSTRATE:
         # No top-level project block in this payload (see CapstoneSubstrateTriggerPayload) —
@@ -168,5 +236,4 @@ def adapt(workflow: Workflow, raw: Any) -> dict[str, Any]:
             "completedSteps": raw.get("completedSteps", {}),
         }
 
-    # strategic_foresight_report — pass through until ported
     return {**common, "raw": raw}

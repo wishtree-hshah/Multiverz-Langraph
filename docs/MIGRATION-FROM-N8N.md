@@ -1,10 +1,27 @@
 # Migrating a workflow off n8n
 
-Ported so far: `domain_agent`, `idea_extraction`, `voting`, `custom_archetype`,
-`foresight_consolidation`, `rapid_consolidation`, `report_render`,
-`capstone_substrate`, `form_filling_10step`. Everything else is a
-`StubStage` that raises `StageNotImplementedError` (→ dead-letter, alert) so a
-misrouted trigger is loud, not silent.
+All 11 workflows are ported: `domain_agent`, `idea_extraction`, `voting`,
+`custom_archetype`, `foresight_consolidation`, `rapid_consolidation`,
+`report_render`, `capstone_substrate`, `form_filling_10step`,
+`strategy_form_idea_generation`, `strategic_foresight_report`. A misrouted
+trigger for anything else still fails loud via `StageNotImplementedError` (→
+dead-letter, alert) rather than silently — that path is exercised by
+`StubStage` and stays in place even with an empty registry gap.
+
+The last two ported workflows are a special case worth knowing about: no n8n
+*workflow* export exists for either, under any name, in `challenges-n8n/` or
+`strategy-navigator-n8n/`. What does exist is the operative *prompt* text
+(Mongo `prompt_list` ids `4` and `6`) plus the real backend trigger/callback
+DTOs and controllers. The prompt text was recovered byte-exact — not
+reconstructed — from `strategy-navigator-n8n/Admin Workflows/Prompt
+seed.json`'s `pinData`, a pinned test payload from when that seeder workflow
+was last run, which happens to carry the full `prompt_list` collection
+verbatim (all 30 prompt ids, including the complete "5.1 n8n output parser
+schema" for prompt `6` that the earlier, manually-truncated copy of
+`prompts/_mongo/6.md` was missing). If you ever need to re-verify a Mongo
+prompt against ground truth and don't have live Mongo/backend access, check
+for a `pinData` block on the seeder/admin workflow exports before concluding
+the text is unrecoverable.
 
 ## The n8n → LangGraph mapping
 
@@ -49,7 +66,8 @@ There are **two** places an n8n prompt can live — check
 which:
 
 **a. Mongo-backed** (`domain_agent`, `idea_extraction`, `voting`,
-`foresight_consolidation`, `rapid_consolidation`, `form_filling_10step`). The
+`foresight_consolidation`, `rapid_consolidation`, `form_filling_10step`,
+`strategy_form_idea_generation`, `strategic_foresight_report`). The
 agent node is `text = {{ $json.prompt }}` and n8n loads the template from MongoDB
 `prompt_list` by `promptId` at runtime. It is **not in the export**. Export it:
 
@@ -152,6 +170,19 @@ you want; `run_id` idempotency makes double-triggers safe.
    `interrupt()` gates with a new per-step checkpoint callback, and the same
    QC panel report_render already has, reused as-is. See
    `stages/form_filling_10step.py`'s module docstring for the full trace.
-6. `strategy_form_idea_generation`, `strategic_foresight_report` — no n8n export
-   exists for either (checked all of `challenges-n8n/`); left as `StubStage`
-   until source material shows up.
+6. ~~`strategy_form_idea_generation`, `strategic_foresight_report`~~ ✅ both
+   ported. No n8n *workflow* export exists for either — but the sibling repo
+   `strategy-navigator-n8n/Admin Workflows/Prompt seed.json` turned out to
+   carry a pinned test payload with the full, byte-exact `prompt_list` seed
+   (all 30 Mongo prompt ids, including `4` "Idea Extract with Solution" and
+   `6` "Report Generation"), and the real backend DTOs/controllers gave the
+   rest of the contract. `strategic_foresight_report` is a single structured
+   call — `stages/strategic_foresight_report.py`, output schema matches the
+   prompt's own "5.1 n8n output parser schema" section field-for-field.
+   `strategy_form_idea_generation` has a genuinely different trigger shape
+   from every other workflow here: the backend POSTs a bare **array**, one
+   item per customized template, all sharing one `runId` — ported as a
+   `Send`-based fan-out (one child call per template, reusing
+   `IdeaExtractionOutput` since prompt `4`'s output format is character-for-
+   character the same shape as `idea_extraction`'s). See both stages' module
+   docstrings for the full trace.
