@@ -1,6 +1,7 @@
 # Migrating a workflow off n8n
 
-Ported so far: `domain_agent`, `idea_extraction`, `voting`. Everything else is a
+Ported so far: `domain_agent`, `idea_extraction`, `voting`, `custom_archetype`.
+Everything else is a
 `StubStage` that raises `StageNotImplementedError` (→ dead-letter, alert) so a
 misrouted trigger is loud, not silent.
 
@@ -122,10 +123,13 @@ you want; `run_id` idempotency makes double-triggers safe.
 
 ## Porting order (recommended)
 
-1. **`report_render`** — worst offender (114 nodes, 100 KB of Code-node JS),
+1. ~~**`custom_archetype`** — tiny (10 nodes).~~ ✅ ported.
+2. **`foresight_consolidation`** + **`rapid_consolidation`** — small, similar shape,
+   Mongo prompts already pulled — next up.
+3. **`report_render`** — worst offender (114 nodes, 100 KB of Code-node JS),
    self-contained, clear substrate-in / report-out contract. Proves the pattern.
-2. **`capstone_substrate`** — feeds report_render; port together.
-3. **`rapid_consolidation`** + **`foresight_consolidation`** — small, similar shape.
-4. **`custom_archetype`** — tiny (10 nodes).
+4. **`capstone_substrate`** — feeds report_render; port right after.
 5. **`form_filling_10step`** — the 308-node monster, last, one step per node.
-6. `strategy_form_idea_generation`, `strategic_foresight_report` — as needed.
+6. `strategy_form_idea_generation`, `strategic_foresight_report` — no n8n export
+   exists for either (checked all of `challenges-n8n/`); left as `StubStage`
+   until source material shows up.

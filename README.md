@@ -96,7 +96,7 @@ make worker-retry
 ## Porting status
 
 `strategy-navigator workflows` prints the table. Ported: `domain_agent`,
-`idea_extraction`, `voting`. The rest raise `StageNotImplementedError` (→
+`idea_extraction`, `voting`, `custom_archetype`. The rest raise `StageNotImplementedError` (→
 dead-letter, alert) until ported — see [docs/MIGRATION-FROM-N8N.md](docs/MIGRATION-FROM-N8N.md).
 
 ## Testing

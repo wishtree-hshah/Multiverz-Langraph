@@ -46,17 +46,6 @@ class ArchetypeSpec(CamelModel):
     divergence_display: str | None = None
 
 
-class ArchetypeSection(CamelModel):
-    title: str
-    purpose: str
-    target_words: int = 400
-
-
-class ArchetypeDefinition(CamelModel):
-    name: str
-    sections: list[ArchetypeSection]
-
-
 class CustomArchetypeRequest(CamelModel):
     session_id: str
     project: ProjectContext
@@ -65,10 +54,39 @@ class CustomArchetypeRequest(CamelModel):
     callback_url: str | None = None
 
 
+class ProvenanceEntry(CamelModel):
+    field: str
+    source: str
+    reason: str
+
+
+class AssembledArchetype(CamelModel):
+    """The LLM's normalised archetype, matching backend's ``AssembledArchetypeDto``."""
+
+    name: str
+    primary_reader: str
+    template: str
+    intended_use: str
+    external_options_prominence: str
+    divergence_display: str
+    typical_pages: int
+    section_list: list[str]
+    body_is_count_driven: bool
+
+
+class CustomArchetypeOutput(CamelModel):
+    """Raw structured-output shape of the ``custom_archetype.system`` prompt."""
+
+    archetype: AssembledArchetype
+    provenance: list[ProvenanceEntry]
+    needs_confirmation: bool = True
+
+
 class CustomArchetypeCallback(CamelModel):
     session_id: str
-    project_id: int
-    archetype: ArchetypeDefinition
+    status: str = "assembled"
+    archetype: AssembledArchetype | None = None
+    provenance: list[ProvenanceEntry] | None = None
     execution_id: str | None = None
     token_usage: list[dict] | None = None
     error_message: str | None = None
