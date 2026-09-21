@@ -78,6 +78,9 @@ def fake_structured(monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setattr("strategy_navigator.stages.idea_extraction.generate_structured", _gen)
     monkeypatch.setattr("strategy_navigator.stages.voting.child.generate_structured", _gen)
     monkeypatch.setattr("strategy_navigator.stages.custom_archetype.generate_structured", _gen)
+    monkeypatch.setattr(
+        "strategy_navigator.stages.foresight_consolidation.generate_structured", _gen
+    )
 
     class Handle:
         def set(self, stage: str, payload: dict) -> None:

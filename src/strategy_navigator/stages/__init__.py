@@ -18,7 +18,13 @@ from typing import Any
 
 from strategy_navigator.constants import Workflow
 from strategy_navigator.errors import UnknownWorkflowError
-from strategy_navigator.stages import custom_archetype, domain_agent, idea_extraction, voting
+from strategy_navigator.stages import (
+    custom_archetype,
+    domain_agent,
+    foresight_consolidation,
+    idea_extraction,
+    voting,
+)
 from strategy_navigator.stages.base import StubStage
 
 GraphBuilder = Callable[[], Any]
@@ -29,10 +35,10 @@ _REGISTRY: dict[Workflow, GraphBuilder] = {
     Workflow.IDEA_EXTRACTION: idea_extraction.build,
     Workflow.VOTING: voting.build,
     Workflow.CUSTOM_ARCHETYPE: custom_archetype.build,
+    Workflow.FORESIGHT_CONSOLIDATION: foresight_consolidation.build,
     # --- stubs (port next) ---
     Workflow.STRATEGY_FORM_IDEA_GENERATION: StubStage(Workflow.STRATEGY_FORM_IDEA_GENERATION),
     Workflow.RAPID_CONSOLIDATION: StubStage(Workflow.RAPID_CONSOLIDATION),
-    Workflow.FORESIGHT_CONSOLIDATION: StubStage(Workflow.FORESIGHT_CONSOLIDATION),
     Workflow.FORM_FILLING_10STEP: StubStage(Workflow.FORM_FILLING_10STEP),
     Workflow.CAPSTONE_SUBSTRATE: StubStage(Workflow.CAPSTONE_SUBSTRATE),
     Workflow.REPORT_RENDER: StubStage(Workflow.REPORT_RENDER),
