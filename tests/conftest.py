@@ -84,6 +84,7 @@ def fake_structured(monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setattr("strategy_navigator.stages.rapid_consolidation.generate_structured", _gen)
     monkeypatch.setattr("strategy_navigator.stages.report_render.generate_structured", _gen)
     monkeypatch.setattr("strategy_navigator.stages.capstone_substrate.generate_structured", _gen)
+    monkeypatch.setattr("strategy_navigator.stages.form_filling_10step.generate_structured", _gen)
 
     class Handle:
         def set(self, stage: str, payload: dict) -> None:
@@ -102,6 +103,7 @@ def fake_search(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("strategy_navigator.stages.idea_extraction.jina_search", _search)
     monkeypatch.setattr("strategy_navigator.stages.report_render.jina_search", _search)
     monkeypatch.setattr("strategy_navigator.stages.capstone_substrate.jina_search", _search)
+    monkeypatch.setattr("strategy_navigator.stages.form_filling_10step.jina_search", _search)
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@
 
 Ported so far: `domain_agent`, `idea_extraction`, `voting`, `custom_archetype`,
 `foresight_consolidation`, `rapid_consolidation`, `report_render`,
-`capstone_substrate`. Everything else is a
+`capstone_substrate`, `form_filling_10step`. Everything else is a
 `StubStage` that raises `StageNotImplementedError` (→ dead-letter, alert) so a
 misrouted trigger is loud, not silent.
 
@@ -141,7 +141,17 @@ you want; `run_id` idempotency makes double-triggers safe.
    referential-integrity check are pure Python ports with no LLM involved.
    See `stages/capstone_substrate.py`'s module docstring for the trace and
    two documented deliberate fixes over gaps in the actual n8n wiring.
-5. **`form_filling_10step`** — the 308-node monster, last, one step per node.
+5. ~~**`form_filling_10step`** — the 308-node monster.~~ ✅ ported. Almost all
+   of the node count turned out to be n8n's own MongoDB-backed
+   resume/durability layer (not ported — LangGraph's checkpointer already
+   provides it) and per-type JSON-repair agents (collapsed into
+   `generate_structured`'s built-in repair, this repo's standard replacement
+   for every n8n outputParserStructured node). The real remaining shape was
+   10 sequential step-agents (dependency-graph-driven context injection,
+   traced verbatim from "Resolve Deps"/"Assemble Ctx"), 9 human-approval
+   `interrupt()` gates with a new per-step checkpoint callback, and the same
+   QC panel report_render already has, reused as-is. See
+   `stages/form_filling_10step.py`'s module docstring for the full trace.
 6. `strategy_form_idea_generation`, `strategic_foresight_report` — no n8n export
    exists for either (checked all of `challenges-n8n/`); left as `StubStage`
    until source material shows up.

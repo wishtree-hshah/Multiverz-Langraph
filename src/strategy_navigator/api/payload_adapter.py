@@ -156,5 +156,17 @@ def adapt(workflow: Workflow, raw: Any) -> dict[str, Any]:
             "selectedArchetypes": raw.get("selectedArchetypes", []),
         }
 
-    # form_filling_10step, strategic_foresight_report — pass through until ported
+    if workflow == Workflow.FORM_FILLING_10STEP:
+        agent = raw.get("agent") or {}
+        if not agent:
+            raise InvalidPayloadError("form_filling_10step payload has no agent")
+        agent.setdefault("isDomainSpecific", raw.get("isDomainSpecific", False))
+        return {
+            **common,
+            "agent": agent,
+            "logId": raw.get("logId"),
+            "completedSteps": raw.get("completedSteps", {}),
+        }
+
+    # strategic_foresight_report — pass through until ported
     return {**common, "raw": raw}

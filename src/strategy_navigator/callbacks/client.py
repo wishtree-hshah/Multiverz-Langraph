@@ -34,12 +34,21 @@ _DEFAULT_PATH: dict[str, str] = {
     Workflow.CAPSTONE_SUBSTRATE: "/n8n/callbacks/capstone-substrate",
     Workflow.REPORT_RENDER: "/n8n/callbacks/capstone-report-render",
     Workflow.CUSTOM_ARCHETYPE: "/n8n/callbacks/capstone-custom-archetype",
-    Workflow.FORM_FILLING_10STEP: "/n8n/callbacks/strategy-form-submission",
+    # Not "/n8n/callbacks/..." like its siblings — this workflow has no separate
+    # submission endpoint. Every step (1-9 mid-run, 10 as the run's normal final
+    # delivery) posts to the same per-step checkpoint route the backend exposes
+    # directly on customize-template (see stages/form_filling_10step.py).
+    Workflow.FORM_FILLING_10STEP: "/customize-template/n8n-step-checkpoint",
     Workflow.STRATEGIC_FORESIGHT_REPORT: "/n8n/callbacks/strategic-foresight-report",
 }
 
 # workflows whose backend controller expects a bare object, not [obj]
-_BARE_OBJECT = {Workflow.CAPSTONE_SUBSTRATE, Workflow.REPORT_RENDER, Workflow.CUSTOM_ARCHETYPE}
+_BARE_OBJECT = {
+    Workflow.CAPSTONE_SUBSTRATE,
+    Workflow.REPORT_RENDER,
+    Workflow.CUSTOM_ARCHETYPE,
+    Workflow.FORM_FILLING_10STEP,
+}
 
 
 def _resolve_url(workflow: str, callback_url: str | None) -> str:

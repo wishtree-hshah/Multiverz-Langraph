@@ -50,15 +50,36 @@ def test_trigger_unknown_workflow_400(client):
     assert resp.status_code == 400
 
 
-def test_trigger_form_filling_10step_is_long_lane_stub(client, sample_project):
+def test_trigger_strategic_foresight_report_is_long_lane_stub(client, sample_project):
     body = {
-        "workflow_name": "Strategy-form-submission",
+        "workflow_name": "Report-Generation-Strategic-Foresight",
         "payload": {**sample_project, "sessionId": "r-1"},
     }
     resp = client.post("/webhooks/trigger", json=body)
     assert resp.status_code == 202
     assert resp.json()["lane"] == "long"
     assert resp.json()["ported"] is False
+
+
+def test_trigger_form_filling_10step_is_ported(client, sample_project):
+    body = {
+        "workflow_name": "Strategy-form-submission",
+        "payload": {
+            **sample_project,
+            "sessionId": "r-1",
+            "agent": {
+                "id": 1,
+                "name": "Agent",
+                "designation": "Economist",
+                "description": "Analyse.",
+            },
+        },
+    }
+    resp = client.post("/webhooks/trigger", json=body)
+    assert resp.status_code == 202
+    data = resp.json()
+    assert data["lane"] == "long"
+    assert data["ported"] is True
 
 
 def test_trigger_report_render_is_ported(client, sample_project):
