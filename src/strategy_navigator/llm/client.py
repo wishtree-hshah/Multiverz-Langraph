@@ -140,6 +140,14 @@ class LLMClient:
             "timeout": settings.llm_request_timeout_s,
             "num_retries": 0,  # tenacity owns retries here
         }
+        if "/" not in model:
+            # A bare model name (our gateway's model_list alias, e.g.
+            # "deepseek-v4-pro") has no provider prefix for litellm's SDK to
+            # infer a provider from — without this it raises "LLM Provider NOT
+            # provided" instead of routing through api_base. Only the documented
+            # fallback path (SN_LLM_BASE_URL pointed straight at a real
+            # provider, model prefixed e.g. "openrouter/...") skips this.
+            params["custom_llm_provider"] = "openai"
         if max_tokens:
             params["max_tokens"] = max_tokens
         if response_format:
