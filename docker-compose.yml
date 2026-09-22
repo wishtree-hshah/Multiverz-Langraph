@@ -26,6 +26,12 @@ x-app: &app
   environment:
     SN_DATABASE_URL: postgresql://sn:sn_dev_pw@postgres:5432/strategy_navigator
     SN_LLM_BASE_URL: http://litellm:4000/v1
+  # Lets SN_BACKEND_BASE_URL=http://host.docker.internal:<port> resolve when
+  # challenges-backend runs on the host (e.g. `npm run start:dev`), not in
+  # this compose stack. Docker Desktop maps this automatically; Linux needs
+  # the explicit host-gateway mapping (supported since Docker 20.10).
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
   depends_on:
     postgres:
       condition: service_healthy
@@ -76,17 +82,28 @@ services:
     command: ["serve"]
     ports: ["8000:8000"]
 
+  # Workers reuse the api image, but the image's own HEALTHCHECK (baked in by
+  # the Dockerfile) curls localhost:8000/healthz — meaningless for a process
+  # that never binds that port. Left enabled, every worker container reports
+  # "unhealthy" forever. Disable it here; worker liveness is just "is the
+  # process up" (docker ps STATUS), which restart: unless-stopped covers.
   worker-short:
     <<: *app
     command: ["worker", "--lane", "short"]
+    healthcheck:
+      disable: true
 
   worker-long:
     <<: *app
     command: ["worker", "--lane", "long"]
+    healthcheck:
+      disable: true
 
   worker-retry:
     <<: *app
     command: ["worker", "--lane", "retry"]
+    healthcheck:
+      disable: true
 
 volumes:
   sn_pg_data:

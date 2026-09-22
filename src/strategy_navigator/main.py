@@ -87,7 +87,17 @@ def db_upgrade(revision: str = typer.Argument("head")) -> None:
 
     async def _rest() -> None:
         async with queue_app.open_async():
-            await queue_app.schema_manager.apply_schema_async()
+            # procrastinate's own apply_schema_async() is not idempotent (plain
+            # CREATE TYPE/TABLE, no IF NOT EXISTS) and raises DuplicateObject on
+            # a second run — which every subsequent `docker compose up` triggers
+            # via the one-shot `migrate` service. Skip if already installed.
+            already = await queue_app.connector.execute_query_one_async(
+                "SELECT to_regclass('public.procrastinate_jobs') IS NOT NULL AS exists"
+            )
+            if already["exists"]:
+                log.info("db.procrastinate_schema_already_applied")
+            else:
+                await queue_app.schema_manager.apply_schema_async()
         await setup_checkpointer()
 
     asyncio.run(_rest())
