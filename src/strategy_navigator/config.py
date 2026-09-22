@@ -67,6 +67,12 @@ class Settings(BaseSettings):
     backend_callback_token: str = ""
     backend_callback_timeout_s: int = 30
     backend_callback_max_retries: int = 5
+    # Several callback routes sit behind challenges-backend's SessionAuthGuard
+    # (a logged-in-user session cookie, not a bearer token) rather than the
+    # CallbackSignatureGuard alone. When set, callbacks/client.py logs in with
+    # these credentials and attaches the resulting session cookie.
+    backend_login_email: str = ""
+    backend_login_password: str = ""
 
     # --- queue lanes ---
     lane_short_concurrency: int = 4
