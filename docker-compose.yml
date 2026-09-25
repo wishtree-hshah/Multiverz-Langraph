@@ -1,0 +1,136 @@
+# ============================================================================
+# Strategy Navigator — local stack.
+#
+# Services:
+#   postgres     checkpoints + procrastinate queue + app tables + search cache
+#   litellm      LLM gateway (DeepSeek via OpenRouter) — the shared rate limiter
+#   migrate      one-shot: alembic upgrade + procrastinate schema install
+#   api          FastAPI: n8n-compatible webhooks + run status/resume
+#   worker-short lane concurrency 4  (domain agent, idea extraction, consolidation,
+#                foresight, voting)
+#   worker-long  lane concurrency 6  (10-step form filling, capstone substrate,
+#                report render, custom archetype)
+#   worker-retry lane concurrency 4, high priority — resumes failed runs from
+#                their last LangGraph checkpoint
+#
+# NO Redis, NO Mongo. Postgres does the queue; one LiteLLM instance is the
+# cross-worker rate limiter.
+# ============================================================================
+name: strategy-navigator
+
+x-app: &app
+  build:
+    context: .
+  image: strategy-navigator:local
+  env_file: .env
+  environment:
+    SN_DATABASE_URL: postgresql://sn:sn_dev_pw@postgres:5432/strategy_navigator
+    SN_LLM_BASE_URL: http://litellm:4000/v1
+  # Lets SN_BACKEND_BASE_URL=http://host.docker.internal:<port> resolve when
+  # challenges-backend runs on the host (e.g. `npm run start:dev`), not in
+  # this compose stack. Docker Desktop maps this automatically; Linux needs
+  # the explicit host-gateway mapping (supported since Docker 20.10).
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  depends_on:
+    postgres:
+      condition: service_healthy
+    migrate:
+      condition: service_completed_successfully
+  networks: [sn_net]
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: sn
+      POSTGRES_PASSWORD: sn_dev_pw
+      POSTGRES_DB: strategy_navigator
+    ports: ["5432:5432"]
+    volumes:
+      - sn_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sn -d strategy_navigator"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [sn_net]
+
+  litellm:
+    image: litellm/litellm:latest
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    volumes:
+      - ./deploy/litellm-config.yaml:/app/config.yaml:ro
+    environment:
+      OPENROUTER_KEY: ${OPENROUTER_KEY:-}
+      LITELLM_MASTER_KEY: ${SN_LLM_API_KEY:-sk-litellm-CHANGE-ME}
+    ports: ["4010:4000"]
+    networks: [sn_net]
+    restart: unless-stopped
+
+  migrate:
+    <<: *app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["db", "upgrade"]
+    restart: "no"
+
+  api:
+    <<: *app
+    command: ["serve"]
+    ports: ["8000:8000"]
+
+  # Workers reuse the api image, but the image's own HEALTHCHECK (baked in by
+  # the Dockerfile) curls localhost:8000/healthz — meaningless for a process
+  # that never binds that port. Left enabled, every worker container reports
+  # "unhealthy" forever. Disable it here; worker liveness is just "is the
+  # process up" (docker ps STATUS), which restart: unless-stopped covers.
+  worker-short:
+    <<: *app
+    command: ["worker", "--lane", "short"]
+    healthcheck:
+      disable: true
+
+  worker-long:
+    <<: *app
+    command: ["worker", "--lane", "long"]
+    healthcheck:
+      disable: true
+
+  worker-retry:
+    <<: *app
+    command: ["worker", "--lane", "retry"]
+    healthcheck:
+      disable: true
+
+  # DEV ONLY: stands in for the "Approve & Continue" UI action that
+  # challenges-backend/challenges-frontend don't implement yet for
+  # form_filling_10step's 9 human-approval gates (see scripts/auto_resume.sh
+  # and scripts/auto_resume_service.sh for the full story). Runs as its own
+  # container, independent of any host session, so it survives Claude Code
+  # / terminal restarts — remove this service once the real approval UI
+  # ships.
+  dev-auto-approver:
+    image: alpine:3.20
+    command: ["sh", "-c", "apk add --no-cache bash curl jq postgresql16-client >/dev/null && bash /scripts/auto_resume_service.sh"]
+    environment:
+      SN_DATABASE_URL: postgresql://sn:sn_dev_pw@postgres:5432/strategy_navigator
+      AUTO_RESUME_BASE_URL: http://api:8000
+    volumes:
+      - ./scripts/auto_resume_service.sh:/scripts/auto_resume_service.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks: [sn_net]
+    restart: unless-stopped
+
+volumes:
+  sn_pg_data:
+
+networks:
+  sn_net:
+    driver: bridge
