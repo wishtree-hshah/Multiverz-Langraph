@@ -85,14 +85,40 @@ class Step3Output(CamelModel):
 # --- Step 4: Scenario Frameworks + Preferred Future --------------------------
 
 
+class ScenarioSet(CamelModel):
+    """One scenario-set: GBN model under root key "0", Four Step model under
+    "1". ``axes`` stays permissive (its shape differs by method — GBN carries
+    axis1/axis2/quadrantMap, Four Step carries focalPoint/progression/
+    scenarioMap — and capstone_substrate.py only ever forwards it raw as
+    ``axesRaw``). The scalar fields below ARE read by exact name downstream
+    (capstone_substrate.py's entity-consolidation input does
+    ``sf.get("scenarioAnalysisKeyInsight")``), so they're pinned here rather
+    than left in a free-form dict: an earlier live run had the LLM drift to
+    "analysisKeyInsight" instead of the prompt's own "scenarioAnalysisKey
+    Insight", which silently dropped that field for every downstream reader
+    since nothing enforced the name.
+    """
+
+    type: str = ""
+    axes: dict[str, Any] = {}
+    scenario_a: str = ""
+    scenario_b: str = ""
+    scenario_c: str = ""
+    scenario_d: str = ""
+    weak_signal1: str = ""
+    weak_signal2: str = ""
+    scenario_synthesis: str = ""
+    scenario_analysis_key_insight: str = ""
+
+
 class Step4Output(CamelModel):
     """Root keys "0" (GBN model) / "1" (Four Step model) come back as-is —
     n8n's own port (node "Code in JavaScript6") just tags each with a
     ``type``/``axes.method`` label, ported in ``_tag_scenario_methods``.
     """
 
-    field_0: dict[str, Any] | None = Field(default=None, alias="0")
-    field_1: dict[str, Any] | None = Field(default=None, alias="1")
+    field_0: ScenarioSet | None = Field(default=None, alias="0")
+    field_1: ScenarioSet | None = Field(default=None, alias="1")
     preferred_future: str = ""
     solution_references: dict[str, Any] = {}
 

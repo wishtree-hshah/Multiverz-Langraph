@@ -30,7 +30,18 @@ _PROJECT_FIELDS = (
 
 def _project_block(p: dict[str, Any]) -> dict[str, Any]:
     if "project" in p and isinstance(p["project"], dict):
-        return p["project"]
+        block = dict(p["project"])
+        # report_render's trigger payload (render-trigger-payload.builder.ts's
+        # buildProjectBlock) sends projectId at the outer payload's top level
+        # ONLY — its nested "project" object never carries an id field at
+        # all. Confirmed live: without this backfill, webhooks.py's
+        # `request["project"]["projectId"]` fallback raised a bare KeyError
+        # (not InvalidPayloadError) before the run could even be enqueued.
+        if "projectId" not in block and "projectId" in p:
+            block["projectId"] = p["projectId"]
+        if "projectId" not in block:
+            raise InvalidPayloadError("payload is missing projectId / project block")
+        return block
     block = {k: p[k] for k in _PROJECT_FIELDS if k in p}
     if "projectId" not in block:
         raise InvalidPayloadError("payload is missing projectId / project block")

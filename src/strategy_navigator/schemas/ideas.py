@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import Field
 
-from strategy_navigator.schemas.common import AgentRef, CamelModel, Idea, ProjectContext
+from strategy_navigator.schemas.common import AgentRef, CamelModel, ProjectContext
 
 
 class IdeaExtractionRequest(CamelModel):
@@ -32,11 +32,20 @@ class IdeaExtractionOutput(CamelModel):
 
 
 class IdeaExtractionCallback(CamelModel):
-    session_id: str
-    project_id: int
+    """Matches what ``receiveAgentIdeasFromN8n``/``receiveAgentIdeasFromN8nBody``
+    (customize-template.service.ts) actually reads: a bare object keyed by
+    ``runId`` (not ``sessionId`` — this is the one callback in this repo that
+    uses that name), with ``results`` (not ``ideas``). ``projectId`` is
+    deliberately absent — the backend looks it up from its own trigger log
+    (``log.rawPayload.projectId``), not from the callback body. Confirmed live
+    against a real backend: sending the old {sessionId, projectId, ideas: [...]}
+    shape 400s with "Invalid response format: expected object with results array".
+    """
+
+    run_id: str
     agent_id: int
-    ideas: list[Idea]
-    execution_id: str | None = None
+    agent_source: str | None = None  # "domain-specific" when agent.isDomainSpecific
+    results: list[ExtractedIdea]
     token_usage: list[dict] | None = None
     error_message: str | None = None
 

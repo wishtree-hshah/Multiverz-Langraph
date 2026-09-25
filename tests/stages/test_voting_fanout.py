@@ -56,6 +56,13 @@ async def test_every_agent_scores_every_idea(graph, fake_structured, sample_proj
     )
     final = await graph.ainvoke(state, {"configurable": {"thread_id": "voting:b1"}})
 
-    votes = final["result"]["votes"]
-    assert len(votes) == 4  # 2 agents × 2 ideas
-    assert {(v["agentId"], v["ideaId"]) for v in votes} == {(1, 10), (1, 11), (2, 10), (2, 11)}
+    # Grouped per agent (the shape processAgentVotesAsync actually reads),
+    # not a flat list — each agent's ratings use "rating"/"comment", not
+    # ChildVoteOutput's "score"/"rationale".
+    agents = final["result"]["agents"]
+    assert {a["agentId"] for a in agents} == {1, 2}
+    rated_pairs = {
+        (a["agentId"], r["ideaId"]) for a in agents for r in a["ratings"]
+    }
+    assert rated_pairs == {(1, 10), (1, 11), (2, 10), (2, 11)}
+    assert all(r["rating"] == 7.0 and r["comment"] == "ok" for a in agents for r in a["ratings"])

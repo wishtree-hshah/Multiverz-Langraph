@@ -22,8 +22,8 @@ from strategy_navigator.graph.state import PipelineState
 from strategy_navigator.llm.structured import generate_structured
 from strategy_navigator.logging import get_logger
 from strategy_navigator.prompts import bindings, render, render_prompt
-from strategy_navigator.schemas.common import Idea
 from strategy_navigator.schemas.ideas import (
+    ExtractedIdea,
     IdeaExtractionCallback,
     IdeaExtractionOutput,
     IdeaExtractionRequest,
@@ -90,23 +90,20 @@ async def generate_ideas(state: PipelineState) -> dict[str, Any]:
 async def assemble_callback(state: PipelineState) -> dict[str, Any]:
     req = get_request(state, IdeaExtractionRequest)
     output = IdeaExtractionOutput.model_validate(state["artifacts"]["ideas"])
-    ideas = [
-        Idea(
+    results = [
+        ExtractedIdea(
             title=i.title,
             summary=i.summary,
             sources=i.sources,
             categories=i.categories or req.categories,
-            agent_id=req.agent.id,
-            is_domain_specific_agent=req.agent.is_domain_specific,
         )
         for i in output.ideas
     ]
     callback = IdeaExtractionCallback(
-        session_id=req.session_id,
-        project_id=req.project.project_id,
+        run_id=req.session_id,
         agent_id=req.agent.id,
-        ideas=ideas,
-        execution_id=state["run_id"],
+        agent_source="domain-specific" if req.agent.is_domain_specific else None,
+        results=results,
     )
     return put_result(callback)
 

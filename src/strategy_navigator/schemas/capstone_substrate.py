@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from pydantic import field_validator
+
 from strategy_navigator.schemas.common import CamelModel
 
 # --- Node 2: Citation Resolution ---------------------------------------------
@@ -41,6 +43,17 @@ class Fact(CamelModel):
     citation_keys: list[str] = []
     uncited: bool = False
     source_agents: list[int] = []
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def _coerce_numeric_value(cls, v: Any) -> Any:
+        """Facts pair a bare ``value`` with a separate ``unit`` (e.g.
+        value=10000, unit="INR crore"), so the LLM reasonably emits a
+        numeric JSON value for numeric facts, not a pre-stringified one —
+        confirmed live: 29 facts failed schema validation over 2 repair
+        attempts (same value each time) because ``value`` only accepted
+        ``str``."""
+        return str(v) if isinstance(v, (int, float)) else v
 
 
 class FactsRegisterOutput(CamelModel):

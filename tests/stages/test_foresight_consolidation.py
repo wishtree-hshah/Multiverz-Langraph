@@ -87,4 +87,8 @@ async def test_foresight_consolidation_flattens_and_consolidates(
     result = final["result"]
     assert result["sessionId"] == "s1"
     assert result["ideas"][0]["tier"] == "Lead"
-    assert result["ideas"][0]["sourceAgents"] == ["foundational:1", "domain:2"]
+    # source_agents keeps its literal snake_case wire name (Idea's explicit
+    # Field alias override in schemas/common.py) — the backend's foresight
+    # callback handler destructures this exact key, not the CamelModel
+    # default "sourceAgents".
+    assert result["ideas"][0]["source_agents"] == ["foundational:1", "domain:2"]

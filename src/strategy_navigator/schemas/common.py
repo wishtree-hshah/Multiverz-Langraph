@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 
@@ -83,7 +83,14 @@ class Idea(CamelModel):
     sources: list[str] = []
     categories: list[str] = []
     agent_id: int | None = None
-    source_agents: list[str] = []
+    # Explicit alias, NOT the CamelModel default (which would auto-generate
+    # "sourceAgents") — challenges-backend's foresight consolidation callback
+    # handler (receiveForesightConsolidatedIdeasFromN8n) destructures this
+    # literal snake_case key. Confirmed live: without the override every
+    # foresight idea silently vanished (each hit the handler's own "missing
+    # source_agents" skip branch) while the callback still returned 201 and
+    # the run logged as succeeded.
+    source_agents: list[str] = Field(default=[], alias="source_agents")
     tier: Tier | None = None
     horizon: Horizon | None = None
     is_domain_specific_agent: bool | None = None

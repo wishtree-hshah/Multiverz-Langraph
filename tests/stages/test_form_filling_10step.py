@@ -212,7 +212,9 @@ async def test_form_filling_10step_runs_all_gates_and_ships(
     # run's normal final delivery instead).
     assert len(fake_checkpoints) == 9
     assert [c["body"]["stepNumber"] for c in fake_checkpoints] == list(range(1, 10))
-    assert all(c["body"]["runId"] == "form_filling_10step:ff-1" for c in fake_checkpoints)
+    # runId echoes the raw backend sessionId, not our internal composite run_id
+    # (the backend's n8n_strategy_submission_logs row is keyed by the former).
+    assert all(c["body"]["runId"] == "ff-1" for c in fake_checkpoints)
 
     # step 4's scenario blocks got method-tagged (n8n "Code in JavaScript6" port).
     assert final["artifacts"]["step_4"]["0"]["type"] == "GBN"
@@ -226,7 +228,7 @@ async def test_form_filling_10step_runs_all_gates_and_ships(
     assert final["artifacts"]["qcRevised"] is False
 
     result = final["result"]
-    assert result["runId"] == "form_filling_10step:ff-1"
+    assert result["runId"] == "ff-1"
     assert result["stepNumber"] == 10
     assert result["stepKey"] == "step10"
     assert result["output"]["executiveSummary"] or result["output"].get("executive_summary")

@@ -122,6 +122,18 @@ _BARE_OBJECT = {
     Workflow.FORM_FILLING_10STEP,
     Workflow.STRATEGIC_FORESIGHT_REPORT,
     Workflow.STRATEGY_FORM_IDEA_GENERATION,
+    # receiveAgentIdeasFromN8n reads response.runId/response.results directly
+    # off the top-level object — confirmed live (was 400ing wrapped in [obj]).
+    Workflow.IDEA_EXTRACTION,
+    # processAgentVotesAsync reads payload.votingSessionId/payload.agents
+    # directly off the top-level object BEFORE it ever checks
+    # Array.isArray(payload) — confirmed live: wrapped in [obj], every
+    # delivery bailed out immediately with "missing votingSessionId" (the
+    # array itself has no such property), returning 201 while silently
+    # persisting zero votes. The function's own "Array.isArray(payload) ->
+    # legacy format" branch further down is dead code given that early
+    # bailout, so a bare object is what this handler actually expects.
+    Workflow.VOTING,
 }
 
 

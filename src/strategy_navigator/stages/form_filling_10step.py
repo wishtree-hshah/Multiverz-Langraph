@@ -210,6 +210,29 @@ async def _step1_research(req: FormFillingRequest) -> str:
     return "\n".join(hits[:20])
 
 
+# Per-step output-token budget. Steps whose prompt asks for an open-ended list
+# of verbose items (step_2: up to 10 best practices at ~830-1150 words each;
+# step_4: 8 scenario blocks at 250-350 words each across two models;
+# step_6/7: term-opportunity/actionable lists; step_10: the 16-section final
+# report) routinely need far more than a flat budget — a uniform 6000 was
+# silently truncating step_2's and step_4's JSON mid-object on every run
+# (confirmed live: "Expecting ',' delimiter" at ~19-27k chars, i.e. right at
+# the ~6000-token ceiling), and the built-in repair retry didn't help because
+# it reused the same ceiling. Steps 1/5/8/9 have small/bounded shapes and
+# stay at 6000. step_7 emits ONE ~700-900-word initiative per HIGH-priority
+# item step_6 flagged — that count is unbounded (however many step_6
+# produced), so 12000 still truncated live on two consecutive runs; bumped
+# to 18000.
+_STEP_MAX_TOKENS: dict[int, int] = {
+    2: 14000,
+    3: 10000,
+    4: 10000,
+    6: 12000,
+    7: 18000,
+    10: 14000,
+}
+
+
 async def _generate_step(state: PipelineState, n: int) -> dict[str, Any]:
     req = get_request(state, FormFillingRequest)
     prompt_vars = bindings.build(
@@ -228,7 +251,7 @@ async def _generate_step(state: PipelineState, n: int) -> dict[str, Any]:
         [{"role": "system", "content": system}],
         stage=f"step_{n}",
         temperature=0.4,
-        max_tokens=6000,
+        max_tokens=_STEP_MAX_TOKENS.get(n, 6000),
     )
     output_dict = output.model_dump(by_alias=True)
     if n == 4:
@@ -248,8 +271,13 @@ def _make_generate_step(n: int) -> Any:
 
         if n < 10:  # step 10's checkpoint is the run's normal final delivery instead
             req = get_request(state, FormFillingRequest)
+            # NOT state["run_id"] (our internal "workflow:sessionId" composite) —
+            # the backend's n8n_strategy_submission_logs row is keyed by the raw
+            # sessionId UUID it generated and sent us (confirmed live: a
+            # composite runId 404s with "Submission log with runId ... not found"
+            # even though the row exists under the bare UUID).
             checkpoint = StepCheckpoint(
-                run_id=state["run_id"], step_number=n, step_key=f"step{n}", output=output
+                run_id=req.session_id, step_number=n, step_key=f"step{n}", output=output
             )
             try:
                 await post_callback(
@@ -464,8 +492,9 @@ async def finalize_first_pass(state: PipelineState) -> dict[str, Any]:
 
 @stage_node("assemble_callback")
 async def assemble_callback(state: PipelineState) -> dict[str, Any]:
+    req = get_request(state, FormFillingRequest)
     checkpoint = StepCheckpoint(
-        run_id=state["run_id"],
+        run_id=req.session_id,
         step_number=10,
         step_key="step10",
         output=state["artifacts"]["step_10"],

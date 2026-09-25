@@ -105,6 +105,29 @@ services:
     healthcheck:
       disable: true
 
+  # DEV ONLY: stands in for the "Approve & Continue" UI action that
+  # challenges-backend/challenges-frontend don't implement yet for
+  # form_filling_10step's 9 human-approval gates (see scripts/auto_resume.sh
+  # and scripts/auto_resume_service.sh for the full story). Runs as its own
+  # container, independent of any host session, so it survives Claude Code
+  # / terminal restarts — remove this service once the real approval UI
+  # ships.
+  dev-auto-approver:
+    image: alpine:3.20
+    command: ["sh", "-c", "apk add --no-cache bash curl jq postgresql16-client >/dev/null && bash /scripts/auto_resume_service.sh"]
+    environment:
+      SN_DATABASE_URL: postgresql://sn:sn_dev_pw@postgres:5432/strategy_navigator
+      AUTO_RESUME_BASE_URL: http://api:8000
+    volumes:
+      - ./scripts/auto_resume_service.sh:/scripts/auto_resume_service.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks: [sn_net]
+    restart: unless-stopped
+
 volumes:
   sn_pg_data:
 
