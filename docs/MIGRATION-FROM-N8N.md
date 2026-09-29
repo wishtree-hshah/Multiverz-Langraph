@@ -166,8 +166,8 @@ you want; `run_id` idempotency makes double-triggers safe.
    `generate_structured`'s built-in repair, this repo's standard replacement
    for every n8n outputParserStructured node). The real remaining shape was
    10 sequential step-agents (dependency-graph-driven context injection,
-   traced verbatim from "Resolve Deps"/"Assemble Ctx"), 9 human-approval
-   `interrupt()` gates with a new per-step checkpoint callback, and the same
+   traced verbatim from "Resolve Deps"/"Assemble Ctx"), per-step checkpoint
+   callbacks without human approval gates, and the same
    QC panel report_render already has, reused as-is. See
    `stages/form_filling_10step.py`'s module docstring for the full trace.
 6. ~~`strategy_form_idea_generation`, `strategic_foresight_report`~~ ✅ both

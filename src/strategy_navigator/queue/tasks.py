@@ -44,6 +44,7 @@ async def run_workflow(
     project_id: int | None = None,
     request: dict[str, Any] | None = None,
     resume_value: Any = None,
+    resume_from_checkpoint: bool = False,
     attempt: int = 1,
 ) -> dict[str, Any]:
     wf = Workflow(workflow)
@@ -61,6 +62,7 @@ async def run_workflow(
                 project_id=project_id,
                 request=request,
                 resume_value=resume_value,
+                resume_from_checkpoint=resume_from_checkpoint,
             )
         except PermanentError as exc:
             await _dead_letter(run_id, session_id, workflow, attempt, exc, request)
@@ -127,6 +129,7 @@ async def _requeue_retry(
         project_id=project_id,
         request=request,
         resume_value=resume_value,
+        resume_from_checkpoint=True,
         attempt=attempt,
     )
 

@@ -67,9 +67,9 @@ Auth: `Authorization: Bearer $SN_BACKEND_CALLBACK_TOKEN`.
 ## Scaling a lane
 
 ```bash
-docker compose up -d --scale worker-long=3        # 3 × 6 = 18 concurrent long runs
+docker compose up -d worker-long  # one long worker, max 6 concurrent runs
 # or
-SN_LANE_LONG_CONCURRENCY=10 docker compose up -d worker-long
+SN_LANE_LONG_CONCURRENCY=6 docker compose up -d worker-long
 ```
 
 Remember the ceiling is OpenRouter's rpm/tpm (in `litellm-config.yaml`), not the

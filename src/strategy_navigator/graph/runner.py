@@ -47,6 +47,7 @@ async def run_workflow_graph(
     project_id: int | None,
     request: dict[str, Any],
     resume_value: Any = None,
+    resume_from_checkpoint: bool = False,
 ) -> RunOutcome:
     from strategy_navigator.stages import get_graph_builder  # avoid import cycle
 
@@ -65,6 +66,10 @@ async def run_workflow_graph(
             if resume_value is not None:
                 payload = Command(resume=resume_value)
                 log.info("graph.resume")
+            elif resume_from_checkpoint:
+                # Continue a run interrupted by a worker restart from its durable checkpoint.
+                payload = None
+                log.info("graph.resume_checkpoint")
             else:
                 payload = initial_state(
                     run_id=run_id,
