@@ -1,6 +1,5 @@
-"""form_filling_10step graph: the 9 human-approval gates, checkpoint delivery,
-and the SHIP-path QC panel on step 10 — compiled with an in-memory
-checkpointer."""
+"""form_filling_10step graph: sequential execution, checkpoint delivery, and
+the SHIP-path QC panel on step 10 — compiled with an in-memory checkpointer."""
 
 from __future__ import annotations
 
@@ -8,7 +7,6 @@ from typing import Any
 
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.types import Command
 
 from strategy_navigator.graph.state import initial_state
 from strategy_navigator.stages.form_filling_10step import build
@@ -174,25 +172,7 @@ def _script_qc_ship(fake_structured) -> None:
     )
 
 
-async def _run_to_completion(graph, config, state) -> dict:
-    """``ainvoke`` returns normally with an ``__interrupt__`` key rather than
-    raising — unlike ``astream``, which graph/runner.py iterates and catches
-    ``GraphInterrupt`` around (see graph/runner.py's own docstring)."""
-    payload: Any = state
-    while True:
-        final = await graph.ainvoke(payload, config)
-        pending = final.get("__interrupt__")
-        if not pending:
-            return final
-        value = pending[0].value
-        assert "stepNumber" in value
-        assert "output" in value
-        # LangGraph treats an empty dict as "nothing to resume with" and
-        # re-issues the same interrupt — the resume value must be truthy.
-        payload = Command(resume={"approved": True})
-
-
-async def test_form_filling_10step_runs_all_gates_and_ships(
+async def test_form_filling_10step_runs_sequentially_and_ships(
     graph, fake_structured, fake_checkpoints, fake_search
 ):
     _script_steps(fake_structured)
@@ -206,7 +186,8 @@ async def test_form_filling_10step_runs_all_gates_and_ships(
         request=_request(),
     )
     config = {"configurable": {"thread_id": "form_filling_10step:ff-1"}}
-    final = await _run_to_completion(graph, config, state)
+    final = await graph.ainvoke(state, config)
+    assert "__interrupt__" not in final
 
     # 9 checkpoint calls fired (steps 1-9 mid-run), none for step 10 (that's the
     # run's normal final delivery instead).

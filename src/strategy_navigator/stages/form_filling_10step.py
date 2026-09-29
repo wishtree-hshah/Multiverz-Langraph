@@ -6,9 +6,8 @@ docs/MIGRATION-FROM-N8N.md.
 
 Graph:
 
-    ingest_documents -> generate_step_1 -> await_approval -> generate_step_2
-        -> await_approval -> ... -> generate_step_9 -> await_approval
-        -> generate_step_10 -> run_qc_panel --[hasBlockerOrMajor]--> revise_report -\\
+    ingest_documents -> generate_step_1 -> generate_step_2 -> ... -> generate_step_10
+        -> run_qc_panel --[hasBlockerOrMajor]--> revise_report -\\
                               \\--[else]-------------> finalize_first_pass -> assemble_callback
 
 Traced control flow and scope decisions:
@@ -43,13 +42,9 @@ Traced control flow and scope decisions:
   built-in repair, per this repo's own established replacement for every
   n8n ``outputParserStructured`` node (see docs/MIGRATION-FROM-N8N.md). This
   changes the repair *mechanism*, not the *outcome* it aims for.
-* **9 "Wait" nodes**, one after each of steps 1-9 (none after step 10, which
-  goes straight to the QC panel) — human review/edit gates. Ported as
-  ``interrupt()`` at the one node that does nothing else (``await_approval``),
-  matching this codebase's existing ``waiting_human`` / resume infra
-  (graph/runner.py, api/routes/runs.py) exactly. The resume value's
-  ``output`` field, if present, overrides the step's generated output before
-  continuing — the human's edit.
+* **9 "Wait" nodes** in the legacy n8n workflow are deliberately omitted.
+  The LangGraph workflow proceeds directly from each completed step to the
+  next, while retaining the per-step checkpoint callbacks for progress.
 * **Per-step checkpoint callback** ("Edit Fields17" -> "HTTP Request5", body
   ``{runId, stepNumber, stepKey, output}``) matches backend's
   ``N8nStepCheckpointDto`` exactly. No separate "final submission" endpoint
@@ -83,7 +78,6 @@ import json
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
-from langgraph.types import interrupt
 
 from strategy_navigator.callbacks.client import post_callback
 from strategy_navigator.constants import Workflow
@@ -297,31 +291,6 @@ def _make_generate_step(n: int) -> Any:
 _GENERATE_STEP_NODES = {n: _make_generate_step(n) for n in range(1, 11)}
 
 
-@stage_node("await_approval")
-async def await_approval(state: PipelineState) -> dict[str, Any]:
-    """The one node in the human-gate that calls ``interrupt()`` — kept free of
-    every other side effect (LLM calls, HTTP posts), since LangGraph re-runs a
-    node's body from the top on resume and only the interrupt() calls
-    themselves replay from cache, not ordinary statements before them.
-
-    The ``POST /runs/{run_id}/resume`` caller (``api/routes/runs.py``) must
-    send a **non-empty** ``value`` — ``{"approved": true}`` to accept the step
-    as-is, or ``{"output": {...edited step output...}}`` to override it.
-    LangGraph treats an empty/falsy resume value as "nothing to resume with"
-    and re-issues the same interrupt rather than continuing.
-    """
-    n = state["artifacts"]["lastCompletedStep"]
-    output = state["artifacts"][f"step_{n}"]
-    resume = interrupt({"stepNumber": n, "stepKey": f"step{n}", "output": output})
-    if isinstance(resume, dict) and resume.get("output") is not None:
-        return {"artifacts": {f"step_{n}": resume["output"]}}
-    return {}
-
-
-def route_after_approval(state: PipelineState) -> str:
-    n = state["artifacts"]["lastCompletedStep"]
-    return f"generate_step_{n + 1}"
-
 
 def _step10_as_sections(step10: dict[str, Any]) -> list[dict[str, Any]]:
     return [
@@ -507,7 +476,6 @@ def build() -> StateGraph:
     g.add_node("ingest_documents", ingest_documents)
     for n in range(1, 11):
         g.add_node(f"generate_step_{n}", _GENERATE_STEP_NODES[n])
-    g.add_node("await_approval", await_approval)
     g.add_node("run_qc_panel", run_qc_panel)
     g.add_node("revise_report", revise_report)
     g.add_node("finalize_first_pass", finalize_first_pass)
@@ -516,10 +484,7 @@ def build() -> StateGraph:
     g.add_edge(START, "ingest_documents")
     g.add_edge("ingest_documents", "generate_step_1")
     for n in range(1, 10):
-        g.add_edge(f"generate_step_{n}", "await_approval")
-    g.add_conditional_edges(
-        "await_approval", route_after_approval, [f"generate_step_{n}" for n in range(2, 11)]
-    )
+        g.add_edge(f"generate_step_{n}", f"generate_step_{n + 1}")
     g.add_edge("generate_step_10", "run_qc_panel")
     g.add_conditional_edges(
         "run_qc_panel", fan_out_revision, ["revise_report", "finalize_first_pass"]
