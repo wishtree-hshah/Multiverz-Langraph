@@ -146,7 +146,12 @@ def _extract_fragments(
     def make_fragment(agent_id: Any, location: str, sr: Any) -> dict[str, Any] | None:
         if not isinstance(sr, dict):
             return None
-        citations_text = sr.get("citations") or ""
+        citations_value = sr.get("citations")
+        citations_text = (
+            "\n".join(str(value) for value in citations_value if value is not None)
+            if isinstance(citations_value, list)
+            else str(citations_value or "")
+        )
         reference_urls = sr.get("referenceUrls") or []
         reference_docs = sr.get("referenceDocuments") or []
         if not citations_text and not reference_urls and not reference_docs:
@@ -242,6 +247,10 @@ def _norm_url(u: str | None) -> str | None:
 
 
 def _parse_markdown_citations(text: str) -> list[dict[str, str | None]]:
+    if isinstance(text, list):
+        text = "\n".join(str(value) for value in text if value is not None)
+    elif not isinstance(text, str):
+        text = str(text or "")
     if not text:
         return []
     items = re.split(r"\n(?=\s*\d+\.\s)", text)

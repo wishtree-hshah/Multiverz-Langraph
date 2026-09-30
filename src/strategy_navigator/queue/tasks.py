@@ -163,9 +163,16 @@ async def _dead_letter(
             traceback=traceback.format_exc(),
             payload=payload,
         )
-    await _deliver_callback(
-        run_id, session_id, workflow, {"sessionId": session_id, "errorMessage": str(exc)}
-    )
+    callback_result: dict[str, Any] = {"sessionId": session_id, "errorMessage": str(exc)}
+    if workflow == Workflow.CAPSTONE_SUBSTRATE:
+        callback_result.update(
+            {
+                "projectId": payload.get("projectId"),
+                "triggerBatchId": payload.get("triggerBatchId"),
+                "status": "failed",
+            }
+        )
+    await _deliver_callback(run_id, session_id, workflow, callback_result)
 
 
 async def _deliver_callback(
